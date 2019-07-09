@@ -1,3 +1,6 @@
+from datetime import timedelta
+import datetime
+
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models, transaction
@@ -59,18 +62,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self
 
 
-'''
-    def create(self, validated_data):
-        return User.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        instance.user_name = validated_data.get('user_name', instance.user_name)
-        instance.user_role = instance.user_role('user')
-        instance.save()
-        return instance
-'''
-
-
 class Film(models.Model):
     film_name = models.CharField(max_length=200)
     film_length = models.IntegerField()
@@ -84,6 +75,42 @@ class Hall(models.Model):
 
 
 class Film_Schedule(models.Model):
-    film_id = models.ForeignKey('Film', on_delete=models.CASCADE)
-    hall_id = models.ForeignKey('Hall', on_delete=models.CASCADE)
+    film_id = models.IntegerField()  # models.ForeignKey('film', on_delete=models.CASCADE)
+    hall_id = models.IntegerField()  # models.ForeignKey('hall', on_delete=models.CASCADE)
     film_start = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        film = Film.objects.get(id=self.film_id)
+        hall = Hall.objects.get(id=self.hall_id)
+        dt_film_start = self.film_start  # datetime.datetime.strptime(self.film_start, '%Y-%m-%dT%H:%M:%SZ')
+        dt_film_end = dt_film_start + timedelta(minutes=film.film_length + 25)
+        if dt_film_start < dt_film_start.replace(hour=9, minute=0, second=0):
+            raise Exception("Early!")
+        if dt_film_end >= dt_film_start.replace(hour=23, minute=0, second=0):
+            raise Exception("Late!")
+        schedule = Film_Schedule.objects \
+            .filter(film_start__gte=dt_film_start).filter(film_start__lte=dt_film_end) \
+            .exclude(id=self.id).exists()
+        if schedule:
+            raise Exception("Fuck!")
+        # Film_ScheduleSerializer.su
+        super(Film_Schedule, self).save(*args, **kwargs)
+
+
+class Booking(models.Model):
+    user_id = models.IntegerField()
+    schedule_id = models.IntegerField()
+    place_id = models.CharField(max_length=10)
+    status = models.CharField(max_length=10, default='CREATED')
+    booking_date = models.DateTimeField()
+
+    class Meta:
+        index_together = [
+            ("schedule_id", "place_id", "status"),
+        ]
+
+    def save(self):
+        bookings = Booking.objects.filter(schedule_id=self.schedule_id,
+                                          place_id=self.place_id,
+                                          status__contains=("CREATED", "PAYED")
+                                          )
