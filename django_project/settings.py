@@ -99,11 +99,11 @@ WSGI_APPLICATION = 'django_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cinema',
-        'USER': 'django',
-        'PASSWORD': 'django',
-        'HOST': '127.0.0.1',
-        'PORT': '',
+        'NAME': 'cinema' if 'DBNAME' not in os.environ else os.environ['DBNAME'],
+        'USER': 'django' if 'DBUSER' not in os.environ else os.environ['DBUSER'],
+        'PASSWORD': 'django' if 'DBPWD' not in os.environ else os.environ['DBPWD'],
+        'HOST': '0.0.0.0' if 'DBHOST' not in os.environ else os.environ['DBHOST'],
+        'PORT': 5432 if 'DBPORT' not in os.environ else os.environ['DBPORT'],
     }
 }
 

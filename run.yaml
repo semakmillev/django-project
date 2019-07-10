@@ -1,0 +1,33 @@
+version: '2'
+
+
+services:
+    db:
+        image: postgres
+        environment:
+            POSTGRES_USER: django
+            POSTGRES_PASSWORD: django
+            POSTGRES_DB: cinema
+            PGDATA: /tmp/pgdata
+        volumes:
+            - postgres_data:/tmp/pgdata
+        ports:
+            - "5433:5432"
+
+    web:
+        image: cinema-django
+        command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+        volumes:
+            - ./heckblog:/heckblog
+        depends_on:
+            - db
+        environment:
+            IN_DOCKER: 1
+            DBPORT: 5432
+            DBHOST: db
+        ports:
+            - "8010:8000"
+
+
+volumes:
+    postgres_data:

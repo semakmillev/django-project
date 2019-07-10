@@ -1,0 +1,1 @@
+docker-compose -f /opt/django_project/run.yaml up -d
