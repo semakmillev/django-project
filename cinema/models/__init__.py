@@ -9,6 +9,8 @@ from django.db import models, transaction
 from django.db import models
 from django.utils import timezone
 
+from cinema.models.booking import Booking
+
 
 class UserManager(BaseUserManager):
 
@@ -97,20 +99,3 @@ class Film_Schedule(models.Model):
         super(Film_Schedule, self).save(*args, **kwargs)
 
 
-class Booking(models.Model):
-    user_id = models.IntegerField()
-    schedule_id = models.IntegerField()
-    place_id = models.CharField(max_length=10)
-    status = models.CharField(max_length=10, default='CREATED')
-    booking_date = models.DateTimeField()
-
-    class Meta:
-        index_together = [
-            ("schedule_id", "place_id", "status"),
-        ]
-
-    def save(self):
-        bookings = Booking.objects.filter(schedule_id=self.schedule_id,
-                                          place_id=self.place_id,
-                                          status__contains=("CREATED", "PAYED")
-                                          )

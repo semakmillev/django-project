@@ -1,4 +1,4 @@
-from cinema.models import User, Film, Film_Schedule, Hall, Booking
+from cinema.models import User, Film, Film_Schedule
 from rest_framework import serializers
 
 
@@ -34,12 +34,7 @@ class FilmSerializer(serializers.ModelSerializer):
         return instance
 
 
-class BookingSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField()
 
-    class Meta:
-        model = Booking
-        fields = ('user_id', 'schedule_id', 'place_id', 'status', 'booking_date')
 
 
 class FilmScheduleSerializer(serializers.ModelSerializer):
