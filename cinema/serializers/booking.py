@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from cinema.exceptions import LogicException
 from cinema.models.booking import Booking
 
 
@@ -14,10 +15,10 @@ class BookingSerializer(serializers.ModelSerializer):
         has_bookings = Booking.objects.filter(schedule_id=validated_data.get('schedule_id'),
                                               place_id=validated_data.get('place_id'),
                                               status__in=("CREATED", "PAID")
-                                              # status_ =("CREATED", "PAYED")
                                               ).exists()
         if has_bookings:
-            raise Exception('crap!')
+            raise LogicException('Place is busy!')
+
         return Booking.objects.create(**validated_data)
 
     def pay(self, instance: Booking):

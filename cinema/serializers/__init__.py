@@ -1,4 +1,5 @@
-from cinema.models import User, Film, Film_Schedule
+from cinema.models.user import User
+from cinema.models.film import Film, Film_Schedule
 from rest_framework import serializers
 
 

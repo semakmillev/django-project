@@ -7,7 +7,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from cinema.models import User, Booking, Film_Schedule
+from cinema.exceptions import LogicException
+from cinema.models.user import User
+from cinema.models.booking import Booking
+from cinema.models.film import Film_Schedule
 from cinema.serializers.booking import BookingSerializer
 import pytz
 
@@ -18,11 +21,30 @@ class MakeBookingAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
 
+# немного кривоватый, лучше использовать join, но его я заботать, к сожалению, не успел
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, ])
+def get_user_bookings(request: Request):
+    user_id = request.query_params.get('user_id')
+    user: User = User.objects.get(email=request.user)
+    user_id = user.id if user_id is None else user_id
+    if user.user_role != 'ADMIN' and user.id != user_id:
+        return Response({'message': "you don't have permission to watch this information"}, status.HTTP_403_FORBIDDEN)
+    bookings = Booking.objects.filter(user_id=user_id)
+    booking_info_list = []
+    for booking in bookings:
+        film_schedule = Film_Schedule.objects.get(id=booking.schedule_id)
+        if film_schedule.film_start > datetime.datetime.now().replace(tzinfo=utc) - datetime.timedelta(hours=2):
+            booking_info_list.append(
+                {'booking_id': booking.id, 'place_id': booking.place_id, 'schedule_id': film_schedule.id, 'status':booking.status})
+    return Response({'res': booking_info_list, 'error': ''}, status=status.HTTP_200_OK)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, ])
 def create_booking(request: Request):
     user: User = User.objects.get(email=request.user)
-    booking_data = {}  # = request.data
+    booking_data = {}
     booking_data['user_id'] = user.id
     booking_data['place_id'] = 'R' + str(request.data['row']) + 'P' + str(request.data['place'])
     booking_data['schedule_id'] = request.data['schedule_id']
@@ -30,78 +52,25 @@ def create_booking(request: Request):
     booking_serializer.is_valid(raise_exception=True)
     try:
         booking = booking_serializer.save()
+    except LogicException as ex:
+        return ex.get_web_response()
 
-    except Exception as ex:
-        print(ex)
-        raise ex
-
-    return Response({'booking_id': booking.id}, status=status.HTTP_201_CREATED)
+    return Response({'res': {'booking_id': booking.id}, 'error': ''}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, ])
 def pay_booking(request: Request):
-    '''
-    user: User = User.objects.get(email=request.user)
-    booking_data = {}  # = request.data
-    booking_data['user_id'] = user.id
-    booking_data['place_id'] = 'R' + str(request.data['row']) + 'P' + str(request.data['place'])
-    booking_data['schedule_id'] = request.data['schedule_id']
-    booking_serializer = BookingSerializer(data=booking_data)
-    booking_serializer.is_valid(raise_exception=True)
-    try:
-        booking = booking_serializer.save()
-
-    except Exception as ex:
-        print(ex)
-        raise ex
-    '''
     try:
         booking = Booking.objects.get(id=request.data['booking_id'])
         schedule = Film_Schedule.objects.get(id=booking.schedule_id)
         print(type(schedule.film_start))
         if schedule.film_start + datetime.timedelta(hours=2) < datetime.datetime.now().replace(tzinfo=utc):
-            raise Exception('Late!')
+            raise LogicException("It's too late to pay this booking")
         if booking.status == 'PAYED':
-            raise Exception('Already Payed')
+            raise LogicException("Booking has already payed")
         booking_serializer = BookingSerializer(data=request.data)
         booking_serializer.pay(booking)
-    except Exception as ex:
-        print(ex)
-        raise ex
-
-    return Response({'res': 'payed'}, status=status.HTTP_201_CREATED)
-
-    '''
-    try:
-        email = request.data['email']
-        password = request.data['password']
-        user = None
-        try:
-            user = User.objects.get(email=email, password=password)
-        except ObjectDoesNotExist as ex:
-            print("Not exists")
-        if user:
-
-            try:
-                payload = jwt_payload_handler(user)
-                token = jwt.encode(payload, SECRET_KEY)
-                user_details = {}
-                user_details['name'] = user.user_name
-                user_details['token'] = token
-                user_details['user_id'] = user.id
-                user_logged_in.send(sender=user.__class__,
-                                    request=request, user=user)
-                return Response(user_details, status=status.HTTP_200_OK)
-
-            except Exception as e:
-                raise e
-        else:
-            print("Here")
-            res = {}
-            res['error'] = 'can not authenticate with the given credentials or the account has been deactivated'
-            return Response(res, status=status.HTTP_403_FORBIDDEN)
-    except KeyError:
-        res = {'error': 'please provide a email and a password'}
-        return Response(res)
-    '''
+        return Response({'res': 'payed', 'error': ''}, status=status.HTTP_200_OK)
+    except LogicException as ex:
+        return ex.get_web_response()

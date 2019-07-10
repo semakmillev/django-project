@@ -19,23 +19,23 @@ from django.urls import path
 from cinema import views
 # from cinema.views import add_film, CreateUserAPIView, CreateFilmAPIView, CreateFilmScheduleApiView, \
 #    GetFilmScheduleApiView
-from cinema.views.booking import create_booking, pay_booking
+from cinema.views.booking import create_booking, pay_booking, get_user_bookings
 from cinema.views.film import add_film
 from cinema.views import *
 from cinema.views.schedule import CreateFilmScheduleApiView, GetFilmScheduleApiView, get_places
+from cinema.views.user import CreateUserAPIView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('cinema/filmList', views.film.FilmView.as_view(), name="film-list"),
-    path('cinema/films/', add_film, name="film-list"),
-    path('cinema/films/<int:id>', views.film.FilmView.as_view(), name="film-info"),
-    path('cinema/auth', views.authenticate_user),
-    path('cinema/check', views.check_authorize),
-    path('create', CreateUserAPIView.as_view()),
+    # path('admin/', admin.site.urls),
+    path('cinema/films', views.film.FilmView.as_view()),
+    path('cinema/films/<int:id>', views.film.FilmView.as_view()),
+    path('cinema/auth', views.user.authenticate_user),
+    path('cinema/create', CreateUserAPIView.as_view()),
     path('cinema/film', views.film.CreateFilmAPIView.as_view()),
-    path('cinema/schedule', CreateFilmScheduleApiView.as_view()), # да я знаю что можно дописать кастомный аутентификатор
+    path('cinema/schedule', CreateFilmScheduleApiView.as_view()),
     path('cinema/schedules', GetFilmScheduleApiView.as_view()),
     path('cinema/booking', create_booking),
     path('cinema/pay', pay_booking),
-    path('cinema/places', get_places)
+    path('cinema/places', get_places),
+    path('cinema/booking_list', get_user_bookings)
 ]

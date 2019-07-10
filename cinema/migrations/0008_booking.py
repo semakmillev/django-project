@@ -4,10 +4,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('cinema', '0007_delete_booking'),
     ]
+
+    def insertData(apps, schema_editor):
+        Hall = apps.get_model('cinema', 'Hall')
+        user = Hall(name='Moscow', length=7, width=20)
+        user.save()
+        user = Hall(name='London', length=4, width=10)
+        user.save()
+
 
     operations = [
         migrations.CreateModel(
@@ -23,4 +30,5 @@ class Migration(migrations.Migration):
                 'index_together': {('schedule_id', 'place_id', 'status')},
             },
         ),
+        migrations.RunPython(insertData),
     ]
