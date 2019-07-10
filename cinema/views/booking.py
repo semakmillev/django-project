@@ -1,3 +1,5 @@
+import datetime
+
 from rest_framework import status
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework.permissions import IsAuthenticated
@@ -5,8 +7,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from cinema.models import User
+from cinema.models import User, Booking, Film_Schedule
 from cinema.serializers.booking import BookingSerializer
+import pytz
+
+utc = pytz.UTC
 
 
 class MakeBookingAPIView(APIView):
@@ -33,11 +38,10 @@ def create_booking(request: Request):
     return Response({'booking_id': booking.id}, status=status.HTTP_201_CREATED)
 
 
-
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, ])
 def pay_booking(request: Request):
+    '''
     user: User = User.objects.get(email=request.user)
     booking_data = {}  # = request.data
     booking_data['user_id'] = user.id
@@ -51,11 +55,22 @@ def pay_booking(request: Request):
     except Exception as ex:
         print(ex)
         raise ex
+    '''
+    try:
+        booking = Booking.objects.get(id=request.data['booking_id'])
+        schedule = Film_Schedule.objects.get(id=booking.schedule_id)
+        print(type(schedule.film_start))
+        if schedule.film_start + datetime.timedelta(hours=2) < datetime.datetime.now().replace(tzinfo=utc):
+            raise Exception('Late!')
+        if booking.status == 'PAYED':
+            raise Exception('Already Payed')
+        booking_serializer = BookingSerializer(data=request.data)
+        booking_serializer.pay(booking)
+    except Exception as ex:
+        print(ex)
+        raise ex
 
-    return Response({'booking_id': booking.id}, status=status.HTTP_201_CREATED)
-
-
-
+    return Response({'res': 'payed'}, status=status.HTTP_201_CREATED)
 
     '''
     try:

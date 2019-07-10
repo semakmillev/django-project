@@ -19,10 +19,10 @@ from django.urls import path
 from cinema import views
 # from cinema.views import add_film, CreateUserAPIView, CreateFilmAPIView, CreateFilmScheduleApiView, \
 #    GetFilmScheduleApiView
-from cinema.views.booking import create_booking
+from cinema.views.booking import create_booking, pay_booking
 from cinema.views.film import add_film
 from cinema.views import *
-from cinema.views.schedule import CreateFilmScheduleApiView, GetFilmScheduleApiView
+from cinema.views.schedule import CreateFilmScheduleApiView, GetFilmScheduleApiView, get_places
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,4 +36,6 @@ urlpatterns = [
     path('cinema/schedule', CreateFilmScheduleApiView.as_view()), # да я знаю что можно дописать кастомный аутентификатор
     path('cinema/schedules', GetFilmScheduleApiView.as_view()),
     path('cinema/booking', create_booking),
+    path('cinema/pay', pay_booking),
+    path('cinema/places', get_places)
 ]
